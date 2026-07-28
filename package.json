@@ -1,0 +1,12 @@
+{
+  "name": "studymate-ai-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix studymate-ai/backend\" \"npm run dev --prefix studymate-ai/frontend\"",
+    "start": "concurrently \"npm run start --prefix studymate-ai/backend\" \"npm run dev --prefix studymate-ai/frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
