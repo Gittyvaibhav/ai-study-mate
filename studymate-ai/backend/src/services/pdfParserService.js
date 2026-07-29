@@ -2,12 +2,20 @@ import fs from "fs/promises";
 import path from "path";
 import pdfParse from "pdf-parse";
 import { pathToFileURL } from "url";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractTextFromScannedPdf } from "./ocrService.js";
 
 const MIN_EMBEDDED_TEXT_LENGTH = 50;
 
 const extractTextWithPdfJs = async (fileBuffer) => {
+  // Polyfill DOMMatrix before pdfjs-dist loads, and only load pdfjs-dist
+  // lazily here so a failure in this path can't crash unrelated routes.
+  if (!globalThis.DOMMatrix) {
+    const { default: DOMMatrix } = await import("dommatrix");
+    globalThis.DOMMatrix = DOMMatrix;
+  }
+
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
   const standardFontDir = path.resolve(process.cwd(), "node_modules/pdfjs-dist/standard_fonts");
   const loadingTask = pdfjsLib.getDocument({
     data: new Uint8Array(fileBuffer),
