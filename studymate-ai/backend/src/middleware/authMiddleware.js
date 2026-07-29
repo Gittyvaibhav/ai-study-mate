@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { requireEnv } from "../utils/env.js";
 
 export const protect = async (req, res, next) => {
   try {
@@ -13,11 +14,7 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized, token missing" });
     }
 
-    if (!process.env.JWT_SECRET) {
-      return res.status(500).json({ message: "Server auth configuration is missing" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, requireEnv("JWT_SECRET"));
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -27,6 +24,11 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    const message = error.message || "";
+    if (message.includes("Missing required environment variable")) {
+      return res.status(500).json({ message });
+    }
+
     return res.status(401).json({ message: "Not authorized, token invalid or expired" });
   }
 };

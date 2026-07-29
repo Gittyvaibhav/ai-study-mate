@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { splitTextIntoChunks } from "./chunkingService.js";
+import { requireEnv } from "../utils/env.js";
 
 const MODEL_CANDIDATES = ["gemini-3.6-flash", "gemini-3.5-flash-lite"];
 const MAX_PROMPT_CHARS = 12000;
 const MAX_PROMPT_CHUNKS = 8;
-const GEMINI_TIMEOUT_MS = 25000;
+const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 12000);
 const GEMINI_RETRY_DELAY_MS = 1200;
 const DEPRECATED_PATTERNS = [/^gemini-1\./, /^gemini-2\.0-/];
 
@@ -15,11 +16,7 @@ MODEL_CANDIDATES.forEach((name) => {
 });
 
 const getGenAI = () => {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not defined");
-  }
-
-  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  return new GoogleGenerativeAI(requireEnv("GEMINI_API_KEY"));
 };
 
 const getModel = (modelName) => {
@@ -258,7 +255,7 @@ ${promptDocument}`;
     return normalizeStructuredContent(payload, rawText);
   } catch (error) {
     const message = error?.message || "Unknown Gemini error";
-    if (message.includes("GEMINI_API_KEY is not defined")) {
+    if (message.includes("Missing required environment variable")) {
       throw error;
     }
 

@@ -1,12 +1,15 @@
-import fs from "fs/promises";
-import { pdf as pdfToImages } from "pdf-to-img";
-import sharp from "sharp";
-import { createWorker } from "tesseract.js";
-
 const MAX_OCR_PDF_PAGES = 15;
 const OCR_TEXT_THRESHOLD = 20;
 
+const ensureDomMatrixPolyfill = async () => {
+  if (!globalThis.DOMMatrix) {
+    const { default: DOMMatrix } = await import("dommatrix");
+    globalThis.DOMMatrix = DOMMatrix;
+  }
+};
+
 const createOcrWorker = async () => {
+  const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("eng");
   return worker;
 };
@@ -17,6 +20,8 @@ const recognizeText = async (worker, imagePathOrBuffer) => {
 };
 
 const preprocessImage = async (imagePathOrBuffer) => {
+  const { default: sharp } = await import("sharp");
+
   return sharp(imagePathOrBuffer, { failOn: "none" })
     .rotate()
     .resize({ width: 1800, withoutEnlargement: false, fit: "inside" })
@@ -56,6 +61,9 @@ export const extractTextFromImage = async (imagePathOrBuffer) => {
 };
 
 export const extractTextFromScannedPdf = async (pdfPath) => {
+  await ensureDomMatrixPolyfill();
+  const { pdf: pdfToImages } = await import("pdf-to-img");
+
   const document = await pdfToImages(pdfPath, { scale: 3 });
   let worker;
   const extractedPages = [];

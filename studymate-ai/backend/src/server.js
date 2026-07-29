@@ -2,18 +2,16 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import docRoutes from "./routes/docRoutes.js";
 import doubtRoutes from "./routes/doubtRoutes.js";
+import { validateRequiredEnv } from "./utils/env.js";
 
 dotenv.config();
+validateRequiredEnv();
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const allowedOrigins = new Set(
   [
     process.env.CLIENT_URL,
@@ -28,6 +26,10 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.get(["/favicon.ico", "/favicon.png"], (_req, res) => {
+  res.status(204).end();
+});
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -41,6 +43,15 @@ app.use(
     credentials: true
   })
 );
+
+app.use("/api", async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -61,8 +72,12 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Running on port ${PORT}`);
   });
 };
 
-startServer();
+if (process.env.VERCEL !== "1") {
+  startServer();
+}
+
+export default app;
